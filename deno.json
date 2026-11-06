@@ -1,0 +1,17 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "bittorrent-dht": "npm:bittorrent-dht@11.0.12",
+    "bittorrent-protocol": "npm:bittorrent-protocol@5.0.9",
+    "bittorrent-tracker": "npm:bittorrent-tracker@10.0.12",
+    "parse-torrent": "npm:parse-torrent@11.0.24",
+    "yaml": "npm:yaml@2.9.1",
+    "fast-xml-parser": "npm:fast-xml-parser@5.12.0",
+    "prometheus-client": "npm:@prometheus-io/client@0.16.1"
+  },
+  "tasks": {
+    "start": "deno run --allow-net --allow-read --allow-env src/main.ts",
+    "test": "deno test --allow-read --allow-env --allow-net=127.0.0.1,target.invalid src/tests",
+    "check": "deno check src/main.ts && deno lint && deno fmt --check"
+  }
+}

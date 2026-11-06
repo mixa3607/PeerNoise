@@ -1,0 +1,16 @@
+port: 6881
+metrics:
+  host: 0.0.0.0
+  port: 9090
+refresh_minutes: 30
+# Number of random entries to select FROM EACH feed.
+count: 5
+
+feeds:
+  - url: https://feed.rutracker.cc/atom/f/0.atom
+    proxy: http://192.168.1.200:2080
+  - url: https://sukebei.nyaa.si/?page=rss
+    proxy: http://192.168.1.200:2080
+  - url: https://fosstorrents.com/feed/torrents.xml
+    # No proxy: connect directly. Override count for this feed if needed.
+    count: 5
