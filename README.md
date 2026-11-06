@@ -1,5 +1,8 @@
 # PeerNoise
 
+> **Warning: this is a 99% vibecoded piece of code.** Treat it as an experiment,
+> not audited privacy or security software. Review it before trusting it.
+
 A small Deno experiment that picks random RSS/Atom entries, announces its
 address to BitTorrent DHT and HTTP/UDP trackers, and answers incoming BitTorrent
 handshakes. It does not request or serve file blocks, pretend to be a seed, or
@@ -160,14 +163,29 @@ The target address must be reachable from the Prometheus process or container.
 
 ## Docker
 
+GitHub Actions checks, tests, and publishes a Linux amd64 image to
+`ghcr.io/mixa3607/peernoise` on every push. Branch and commit (`sha-...`) tags
+are published; Git tag pushes also produce matching image tags. `latest` tracks
+the default branch only. Builds use the repository's `GITHUB_TOKEN` with
+`packages: write`; no separate registry secret is required.
+
 ```sh
-TAG=local ./build-image.sh
+docker pull ghcr.io/mixa3607/peernoise:latest
+```
+
+GHCR packages may initially be private. The repository owner can change the
+package visibility to public in GitHub's package settings; otherwise consumers
+need to log in with package read access.
+
+To run the published image:
+
+```sh
 cp samples/config.yaml config.yaml
 docker run --rm --name peernoise \
   -v "$PWD/config.yaml:/config/config.yaml:ro" \
   -p 6881:6881/tcp -p 6881:6881/udp \
   -p 127.0.0.1:9090:9090 \
-  docker.io/mixa3607/peernoise:local
+  ghcr.io/mixa3607/peernoise:latest
 ```
 
 The container runs as a non-root user. Dependencies are cached at build time;
@@ -185,6 +203,8 @@ does not itself provide a VPN or proxy.
 `--load`. Pushing requires an explicit opt-in:
 
 ```sh
+TAG=local ./build-image.sh
+# Manual publishing (log in to the target registry first):
 PUSH=1 TAG=latest ./build-image.sh
 # Multi-platform builds need a configured builder with QEMU or native workers.
 PUSH=1 TAG=latest PLATFORMS=linux/amd64,linux/arm64 ./build-image.sh
