@@ -1,5 +1,9 @@
 # PeerNoise
 
+[![CI](https://img.shields.io/github/actions/workflow/status/mixa3607/PeerNoise/image.yaml?branch=master&style=flat-square)](https://github.com/mixa3607/PeerNoise/actions/workflows/image.yaml)
+[![Container](https://img.shields.io/badge/GHCR-peernoise-blue?style=flat-square&logo=github)](https://github.com/mixa3607/PeerNoise/pkgs/container/peernoise)
+[![License](https://img.shields.io/github/license/mixa3607/PeerNoise?style=flat-square)](LICENSE)
+
 > **Warning: this is a 99% vibecoded piece of code.** Treat it as an experiment,
 > not audited privacy or security software. Review it before trusting it.
 
@@ -210,6 +214,95 @@ PUSH=1 TAG=latest ./build-image.sh
 PUSH=1 TAG=latest PLATFORMS=linux/amd64,linux/arm64 ./build-image.sh
 ./build-image.sh --help
 ```
+
+## Compose and Kubernetes examples
+
+### Docker Compose
+
+```sh
+docker compose -f samples/docker-compose.yaml up -d
+docker compose -f samples/docker-compose.yaml logs -f
+docker compose -f samples/docker-compose.yaml down
+```
+
+Compose mounts `samples/config.yaml` read-only. Edit that file or copy the
+Compose file and config together elsewhere; paths are relative to the Compose
+file. Restart the service after changing the config. To use a pinned image:
+
+```sh
+PEERNOISE_IMAGE=ghcr.io/mixa3607/peernoise:sha-edabbe8 \
+  docker compose -f samples/docker-compose.yaml up -d
+```
+
+Metrics are published on localhost only. The healthcheck tests `/metrics`, not
+feed availability or visibility to torrent observers. Keep published ports and
+the healthcheck URL in sync if you change `config.yaml`. Docker marks failed
+healthchecks unhealthy but does not automatically restart a running unhealthy
+process; the restart policy covers process exits.
+
+### Helm release
+
+`samples/chart` is a minimal Helm chart with a Deployment, ConfigMap, and
+Service. It uses one replica and `Recreate` upgrades to avoid duplicated
+activity. Config changes trigger a restart through a pod-template checksum. No
+PVC, Ingress, or Kubernetes API permissions are required. Probes test the
+metrics HTTP endpoint; RSS outages do not cause restart loops.
+
+```sh
+helm upgrade --install peernoise ./samples/chart \
+  --namespace peernoise --create-namespace
+# Override settings with your own values file:
+helm upgrade --install peernoise ./samples/chart \
+  --namespace peernoise --values my-values.yaml
+kubectl -n peernoise port-forward service/peernoise 9090:9090
+```
+
+Edit the chart's `config` values to supply feeds/proxies; the default only uses
+FOSS Torrents. These values become a ConfigMap, **not a Secret**. Do not put
+credentials or private tracker passkeys in this example. For a private GHCR
+package, configure `imagePullSecrets` with an existing registry Secret.
+
+The default Service is ClusterIP: it exposes TCP/UDP BitTorrent and TCP metrics
+inside the cluster, **not on the public internet**. Outbound DHT works subject
+to cluster networking/firewall rules; incoming peer connections require a
+reachable exit address with matching port forwarding. Changing the Service to
+NodePort or LoadBalancer alone does not guarantee that its address matches the
+outgoing DHT source address, and a default NodePort changes the external port
+number.
+
+For a suitable Linux node, `--set hostNetwork=true` uses the node network and
+`ClusterFirstWithHostNet` DNS. The configured BitTorrent port must be free and
+reachable through the node's firewall/router. This also exposes metrics on the
+node interface when `metrics.host` is `0.0.0.0`; restrict access separately.
+Some clusters prohibit host networking. This is not a VPN/proxy feature.
+
+The chart includes resource requests/limits and targets amd64 nodes because the
+published image is currently amd64-only. An empty `image.tag` uses the chart's
+`appVersion`: `latest` in local sources, a pinned `sha-...` tag in CI packages.
+Set `image.tag` explicitly to override that default.
+
+### OCI chart in GHCR
+
+After a successful image build, Actions lints, packages, and publishes the chart
+to `oci://ghcr.io/mixa3607/charts/peernoise`. Each run produces a unique
+version: `<Chart.yaml version>-dev.<run number>.<attempt>`, for example
+`0.1.0-dev.12.1`. The packaged `appVersion` references the image built from the
+same Git commit. The exact chart version and install command are printed in the
+workflow summary.
+
+```sh
+# Replace the example version with one from a successful workflow summary.
+helm upgrade --install peernoise oci://ghcr.io/mixa3607/charts/peernoise \
+  --version 0.1.0-dev.12.1 \
+  --namespace peernoise --create-namespace \
+  --values my-values.yaml
+```
+
+These are development chart versions, not GitHub releases. Always specify the
+version explicitly: Helm does not select prereleases by default. The OCI chart
+and container image are separate GHCR packages; configure public visibility for
+both if unauthenticated pulls are desired. For private charts, use
+`helm registry login ghcr.io` with a token that has package read access.
 
 ## Checks
 

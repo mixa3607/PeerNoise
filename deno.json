@@ -1,5 +1,8 @@
 {
   "nodeModulesDir": "auto",
+  "fmt": {
+    "exclude": ["samples/chart/templates"]
+  },
   "imports": {
     "bittorrent-dht": "npm:bittorrent-dht@11.0.12",
     "bittorrent-protocol": "npm:bittorrent-protocol@5.0.9",

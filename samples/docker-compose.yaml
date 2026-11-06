@@ -1,0 +1,32 @@
+services:
+  peernoise:
+    image: ${PEERNOISE_IMAGE:-ghcr.io/mixa3607/peernoise:latest}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /config/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      # Keep these in sync with config.yaml; preserve the BitTorrent port number.
+      - "6881:6881/tcp"
+      - "6881:6881/udp"
+      - "127.0.0.1:9090:9090/tcp"
+    healthcheck:
+      test:
+        - CMD
+        - deno
+        - eval
+        - --no-config
+        - 'const r = await fetch("http://127.0.0.1:9090/metrics"); await r.body?.cancel(); if (!r.ok) Deno.exit(1);'
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true

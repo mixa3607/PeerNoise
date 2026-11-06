@@ -1,0 +1,8 @@
+apiVersion: v2
+name: peernoise
+description: RSS-driven BitTorrent swarm noise with Prometheus metrics
+type: application
+version: 0.1.0
+appVersion: latest
+annotations:
+  org.opencontainers.image.source: https://github.com/mixa3607/PeerNoise
